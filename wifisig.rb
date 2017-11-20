@@ -13,6 +13,8 @@
 # RSSI - Noise > 20dBm => Stable
 # RSSI - Noise < 20dBm => Unstable
 
+require 'colorize'
+
 @num_polls = 0
 @tot_signal = 0
 @tot_noise = 0
@@ -53,6 +55,7 @@ class WifiSignal
     else
       "Too Noisy".red
     end
+    @analysis[:combined] = "#{@analysis[:strength]} / #{@analysis[:noise]}"
   end
 
   def pretty_analysis
@@ -73,73 +76,65 @@ class WifiSignal
   end
 end # WifiSignal
 
-sig = WifiSignal.capture
-puts sig.inspect
+class WifiLocation
+  attr_reader :name, :signals
+  def initialize(name = nil)
+    @name = name
+    @signals = []
+  end
+  def add(signal)
+    @name ||= signal.network_name
+    @signals << signal
+  end
+  def num_polls
+    @signals.length
+  end
+  def averages
+    puts "Strength Sum: "
+    puts @signals.inject (0) {|sum, sig| sum += sig.strength }
+    {
+      strength: @signals.inject (0) {|sum, sig| sum += sig.strength} / num_polls,
+      noise: @signals.inject (0) {|sum, sig| sum += sig.noise} / num_polls,
+      diff: @signals.inject (0) {|sum, sig| sum += sig.diff} / num_polls
+    }
+  end
+  def analysis
+    a = averages()
+    total_signal = WifiSignal(
+      network_name: @name,
+      strength: a[:strength],
+      noise: a[:noise],
+      diff: a[:diff]
+    )
+    total_signal.analysis
+  end
+end
+
+
+@location = WifiLocation.new()
 
 def handle_interrupt
+  analysis = @location.analysis
   puts "\n\nAverage Analysis:"
-  puts "- #{@num_polls} #{@num_polls == 1 ? 'poll' : 'polls'}"
-  puts "- #{@tot_signal / @num_polls} average signal"
-  puts "- #{@tot_noise / @num_polls} average noise"
-  puts "- #{@tot_diff / @num_polls} average difference"
-  puts "-> Overall Analysis: ** TBD **"
+  puts "- #{@location.num_polls} #{@num_polls == 1 ? 'poll' : 'polls'}"
+  puts "- #{analysis[:strength]} average signal"
+  puts "- #{analysis[:noise]} average noise"
+  #puts "- #{@tot_diff / @num_polls} average difference"
+  #puts "-> Overall Analysis: ** TBD **"
+  puts ""
   exit!
 end
 trap("SIGINT") { handle_interrupt() }
-
-require 'colorize'
 
 puts "Walk around and observe changes to signal, Ctrl-C to break...\n\n"
 
 puts "#{'Network'.ljust(20)} #{'Signal'.ljust(8)} #{'Noise'.ljust(8)} #{'Diff'.ljust(8)} Analysis"
 
-stats = %w(agrCtlRSSI agrCtlNoise maxRate lastTxRate)
 while true
-  output = %x{/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I}
-  network = output.match(/\s+SSID\:\s+(.+)/)[1]
-  signal = output.match(/agrCtlRSSI\:\s+(-?\d*\.{0,1}\d+)/)[1].to_i
-  noise = output.match(/agrCtlNoise\:\s+(-?\d*\.{0,1}\d+)/)[1].to_i
-  diff = signal - noise
+  signal = WifiSignal.capture()
+  @location.add( signal )
 
-  @num_polls += 1
-  @tot_signal += signal
-  @tot_noise += noise
-  @tot_diff += diff
+  puts "#{signal.network_name.ljust(20)} #{signal.strength.to_s.ljust(8)} #{signal.noise.to_s.ljust(8)} #{signal.diff.to_s.ljust(8)} #{signal.analysis[:combined]}"
 
-  strength_eval = if signal > -50
-    "A+".green
-  elsif signal > -67
-    "A ".green
-  elsif signal > -70
-    "B ".yellow
-  elsif signal > -80
-    "C ".light_red
-  elsif signal > -90
-    "D ".red
-  else
-    "F ".red
-  end
-
-  noise_eval = if diff > 20
-    "Clear".green
-  elsif diff > 15
-    "Murky".yellow
-  elsif diff > 10
-    "Polluted".light_red
-  else
-    "Too Noisy".red
-  end
-
-  complete_eval = "#{strength_eval} / #{noise_eval}"
-
-  #puts "#{network}\tSignal: #{signal.to_s.rjust(4)}\tNoise: #{noise.to_s.rjust(4)}\tDiff: #{diff.to_s.rjust(3)}\t#{strength_eval}\t#{noise_eval}"
-  puts "#{network.ljust(20)} #{signal.to_s.ljust(8)} #{noise.to_s.ljust(8)} #{diff.to_s.ljust(8)} #{complete_eval}"
-
-  # values = {}
-  # stats.each do |stat_name|
-  #   re = Regexp.new("#{stat_name}\:\\s+(-?\\d*\\.{0,1}\\d+)")
-  #   values[stat_name] = output.match(re)[1].to_i
-  # end
-  # puts "#{network}\t#{values.to_a.join("\t")}"
   sleep 1
 end
