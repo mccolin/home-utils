@@ -15,11 +15,6 @@
 
 require 'colorize'
 
-@num_polls = 0
-@tot_signal = 0
-@tot_noise = 0
-@tot_diff = 0
-
 class WifiSignal
   attr_reader :network_name, :strength, :noise, :diff, :grade, :clarity, :analysis
 
@@ -32,34 +27,47 @@ class WifiSignal
   end
 
   def analyze!
-    @analysis = {strength: 'Z', noise: 'Untested'}
-    @analysis[:strength] = if @strength > -50
-      "A+".green
+    if @strength > -50
+      @grade = 'A+'
     elsif @strength > -67
-      "A ".green
+      @grade = 'A'  # green
     elsif @strength > -70
-      "B ".yellow
+      @grade = 'B'  # yellow
     elsif @strength > -80
-      "C ".light_red
+      @grade = 'C'  # light_red
     elsif @strength > -90
-      "D ".red
+      @grade = 'D'  # red
     else
-      "F ".red
+      @grade = 'F'  # red
     end
-    @analysis[:noise] = if @diff > 20
-      "Clear".green
+
+    if @diff > 20
+      @clarity = "Clear"  # green
     elsif @diff > 15
-      "Murky".yellow
+      @clarity = "Murky"  # yellow
     elsif @diff > 10
-      "Polluted".light_red
+      @clarity = "Polluted" # light_red
     else
-      "Too Noisy".red
+      @clarity = "Too Noisy"  # red
     end
-    @analysis[:combined] = "#{@analysis[:strength]} / #{@analysis[:noise]}"
+
+    @analysis = "#{@grade} / #{@clarity}"
   end
 
   def pretty_analysis
-
+    grade_color = {
+      green: /A.*/,
+      yellow: /B/,
+      light_red: /C/,
+      red: /D|F/
+    }.detect {|color, grade_matcher| @grade =~ grade_matcher }[0]
+    clarity_color = {
+      green: 'Clear',
+      yellow: 'Murky',
+      light_red: 'Polluted',
+      red: 'Too Noisy'
+    }.detect {|color, clarity| @clarity == clarity }[0]
+    return "#{@grade.send(grade_color)} / #{@clarity.send(clarity_color)}"
   end
 
   def self.capture
@@ -90,17 +98,18 @@ class WifiLocation
     @signals.length
   end
   def averages
-    puts "Strength Sum: "
-    puts @signals.inject (0) {|sum, sig| sum += sig.strength }
-    {
-      strength: @signals.inject (0) {|sum, sig| sum += sig.strength} / num_polls,
-      noise: @signals.inject (0) {|sum, sig| sum += sig.noise} / num_polls,
-      diff: @signals.inject (0) {|sum, sig| sum += sig.diff} / num_polls
-    }
+    # puts "Strength Sum: "
+    # puts @signals.inject (0) {|sum, sig| sum += sig.strength }
+    # return {
+    #   strength: @signals.inject (0) {|sum, sig| sum += sig.strength } / num_polls,
+    #   noise: @signals.inject (0) {|sum, sig| sum += sig.noise } / num_polls,
+    #   diff: @signals.inject (0) {|sum, sig| sum += sig.diff } / num_polls
+    # }
+    { strength: -10, noise: -90, diff: 80 }
   end
   def analysis
     a = averages()
-    total_signal = WifiSignal(
+    total_signal = WifiSignal.new(
       network_name: @name,
       strength: a[:strength],
       noise: a[:noise],
@@ -134,7 +143,7 @@ while true
   signal = WifiSignal.capture()
   @location.add( signal )
 
-  puts "#{signal.network_name.ljust(20)} #{signal.strength.to_s.ljust(8)} #{signal.noise.to_s.ljust(8)} #{signal.diff.to_s.ljust(8)} #{signal.analysis[:combined]}"
+  puts "#{signal.network_name.ljust(20)} #{signal.strength.to_s.ljust(8)} #{signal.noise.to_s.ljust(8)} #{signal.diff.to_s.ljust(8)} #{signal.pretty_analysis}"
 
   sleep 1
 end
