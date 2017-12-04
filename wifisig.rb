@@ -97,25 +97,22 @@ class WifiLocation
   def num_polls
     @signals.length
   end
-  def averages
-    # puts "Strength Sum: "
-    # puts @signals.inject (0) {|sum, sig| sum += sig.strength }
-    # return {
-    #   strength: @signals.inject (0) {|sum, sig| sum += sig.strength } / num_polls,
-    #   noise: @signals.inject (0) {|sum, sig| sum += sig.noise } / num_polls,
-    #   diff: @signals.inject (0) {|sum, sig| sum += sig.diff } / num_polls
-    # }
-    { strength: -10, noise: -90, diff: 80 }
+  def average_strength
+    @signals.collect(&:strength).sum / num_polls
   end
-  def analysis
-    a = averages()
-    total_signal = WifiSignal.new(
+  def average_noise
+    @signals.collect(&:noise).sum / num_polls
+  end
+  def average_diff
+    @signals.collect(&:diff).sum / num_polls
+  end
+  def pretty_analysis
+    WifiSignal.new(
       network_name: @name,
-      strength: a[:strength],
-      noise: a[:noise],
-      diff: a[:diff]
-    )
-    total_signal.analysis
+      strength: average_strength,
+      noise: average_noise,
+      diff: average_diff
+    ).pretty_analysis
   end
 end
 
@@ -123,14 +120,9 @@ end
 @location = WifiLocation.new()
 
 def handle_interrupt
-  analysis = @location.analysis
   puts "\n\nAverage Analysis:"
-  puts "- #{@location.num_polls} #{@num_polls == 1 ? 'poll' : 'polls'}"
-  puts "- #{analysis[:strength]} average signal"
-  puts "- #{analysis[:noise]} average noise"
-  #puts "- #{@tot_diff / @num_polls} average difference"
-  #puts "-> Overall Analysis: ** TBD **"
-  puts ""
+  disp_name = "#{@location.name} (#{@location.num_polls} #{@location.num_polls == 1 ? 'poll' : 'polls'})"
+  puts "#{disp_name.ljust(20)} #{@location.average_strength.to_s.ljust(8)} #{@location.average_noise.to_s.ljust(8)} #{@location.average_diff.to_s.ljust(8)} #{@location.pretty_analysis}\n\n"
   exit!
 end
 trap("SIGINT") { handle_interrupt() }
