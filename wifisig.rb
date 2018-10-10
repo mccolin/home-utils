@@ -27,7 +27,9 @@ class WifiSignal
   end
 
   def analyze!
-    if @strength > -50
+    if @strength == 0
+      @grade = 'N/A'
+    elsif @strength > -50
       @grade = 'A+'
     elsif @strength > -67
       @grade = 'A'  # green
@@ -41,7 +43,9 @@ class WifiSignal
       @grade = 'F'  # red
     end
 
-    if @diff > 20
+    if @noise == 0
+      @clarity = "Not Connected"    # purple
+    elsif @diff > 20
       @clarity = "Clear"  # green
     elsif @diff > 15
       @clarity = "Murky"  # yellow
@@ -56,16 +60,18 @@ class WifiSignal
 
   def pretty_analysis
     grade_color = {
-      green: /A.*/,
-      yellow: /B/,
-      light_red: /C/,
-      red: /D|F/
+      green: /^A.*/,
+      yellow: /^B/,
+      light_red: /^C/,
+      red: /^D|F/,
+      purple: /^N/
     }.detect {|color, grade_matcher| @grade =~ grade_matcher }[0]
     clarity_color = {
       green: 'Clear',
       yellow: 'Murky',
       light_red: 'Polluted',
-      red: 'Too Noisy'
+      red: 'Too Noisy',
+      purple: 'Not Connected'
     }.detect {|color, clarity| @clarity == clarity }[0]
     return "#{@grade.send(grade_color)} / #{@clarity.send(clarity_color)}"
   end
