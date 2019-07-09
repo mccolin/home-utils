@@ -16,10 +16,11 @@
 require 'colorize'
 
 class WifiSignal
-  attr_reader :network_name, :strength, :noise, :diff, :grade, :clarity, :analysis
+  attr_reader :network_name, :network_bssid, :strength, :noise, :diff, :grade, :clarity, :analysis
 
-  def initialize (network_name:, strength:, noise:, diff:)
-    @network_name = network_name
+  def initialize (name:, bssid:, strength:, noise:, diff:)
+    @network_name = name
+    @network_bssid = bssid
     @strength = strength
     @noise = noise
     @diff = diff
@@ -79,10 +80,12 @@ class WifiSignal
   def self.capture
     output = %x{/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport -I}
     network_name = output.match(/\s+SSID\:\s+(.+)/)[1]
+    network_bssid = output.match(/\s+BSSID\:\s+(.+)/)[1]
     strength = output.match(/agrCtlRSSI\:\s+(-?\d*\.{0,1}\d+)/)[1].to_i
     noise = output.match(/agrCtlNoise\:\s+(-?\d*\.{0,1}\d+)/)[1].to_i
     return WifiSignal.new(
-      network_name: network_name,
+      name: network_name,
+      bssid: network_bssid,
       strength: strength,
       noise: noise,
       diff: strength - noise
@@ -135,13 +138,13 @@ trap("SIGINT") { handle_interrupt() }
 
 puts "Walk around and observe changes to signal, Ctrl-C to break...\n\n"
 
-puts "#{'Network'.ljust(20)} #{'Signal'.ljust(8)} #{'Noise'.ljust(8)} #{'Diff'.ljust(8)} Analysis"
+puts "#{'Network'.ljust(20)} #{'BSSID'.ljust(20)} #{'Signal'.ljust(8)} #{'Noise'.ljust(8)} #{'Diff'.ljust(8)} Analysis"
 
 while true
   signal = WifiSignal.capture()
   @location.add( signal )
 
-  puts "#{signal.network_name.ljust(20)} #{signal.strength.to_s.ljust(8)} #{signal.noise.to_s.ljust(8)} #{signal.diff.to_s.ljust(8)} #{signal.pretty_analysis}"
+  puts "#{signal.network_name.ljust(20)} #{signal.network_bssid.ljust(20)} #{signal.strength.to_s.ljust(8)} #{signal.noise.to_s.ljust(8)} #{signal.diff.to_s.ljust(8)} #{signal.pretty_analysis}"
 
   sleep 1
 end
