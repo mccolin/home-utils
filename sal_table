@@ -6,14 +6,13 @@ years = (args.shift || 10).to_i
 
 puts "         1%         2%         3%         4%"
 puts "-----------------------------------------------------"
-puts "#{Time.now.year}   $ #{base.round(0)}   $ #{base.round(0)}   $ #{base.round(0)}   $ #{base.round(0)}"
+puts "#{"Year 0".ljust(7)}   $ #{base.round(0)}   $ #{base.round(0)}   $ #{base.round(0)}   $ #{base.round(0)}"
 
 sal_a = sal_b = sal_c = sal_d = base
 1.upto(years) do |year|
-  cal_year = Time.now.year + year
   sal_a = sal_a * 1.01
   sal_b = sal_b * 1.02
   sal_c = sal_c * 1.03
   sal_d = sal_d * 1.04
-  puts "#{cal_year}   $ #{sal_a.round(0)}   $ #{sal_b.round(0)}   $ #{sal_c.round(0)}   $ #{sal_d.round(0)}"
+  puts "#{"Year #{year}".ljust(7)}   $ #{sal_a.round(0)}   $ #{sal_b.round(0)}   $ #{sal_c.round(0)}   $ #{sal_d.round(0)}"
 end
