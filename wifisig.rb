@@ -94,13 +94,15 @@ class WifiSignal
 end # WifiSignal
 
 class WifiLocation
-  attr_reader :name, :signals
-  def initialize(name = nil)
-    @name = name
+  attr_reader :name, :bssid, :signals
+  def initialize()
+    @name = "Pending..."
+    @bssid = "Pending..."
     @signals = []
   end
   def add(signal)
-    @name ||= signal.network_name
+    @name = signal.network_name
+    @bssid = signal.network_bssid
     @signals << signal
   end
   def num_polls
@@ -117,7 +119,8 @@ class WifiLocation
   end
   def pretty_analysis
     WifiSignal.new(
-      network_name: @name,
+      name: @name,
+      bssid: @bssid,
       strength: average_strength,
       noise: average_noise,
       diff: average_diff
