@@ -135,7 +135,7 @@ def handle_interrupt
   puts "\n\nAverage Analysis:"
   disp_name = "#{@location.name} (#{@location.num_polls} #{@location.num_polls == 1 ? 'poll' : 'polls'})"
   puts "#{disp_name.ljust(20)} #{@location.average_strength.to_s.ljust(8)} #{@location.average_noise.to_s.ljust(8)} #{@location.average_diff.to_s.ljust(8)} #{@location.pretty_analysis}\n\n"
-  exit!
+  exit(0)
 end
 trap("SIGINT") { handle_interrupt() }
 
