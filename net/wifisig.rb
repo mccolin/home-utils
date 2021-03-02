@@ -13,7 +13,21 @@
 # RSSI - Noise > 20dBm => Stable
 # RSSI - Noise < 20dBm => Unstable
 
-require 'colorize'
+begin
+  require 'colorize'
+  puts "Output will be colorized."
+rescue Exception => e
+  puts "Output will not be colorized (Install colorize gem to add colorization)."
+end
+
+def color_it(str, color)
+  if str.methods.include?(color.to_sym)
+    str.send(color)
+  else
+    return str
+  end
+end
+
 
 class WifiSignal
   attr_reader :network_name, :network_bssid, :strength, :noise, :diff, :grade, :clarity, :analysis
@@ -74,7 +88,7 @@ class WifiSignal
       red: 'Too Noisy',
       purple: 'Not Connected'
     }.detect {|color, clarity| @clarity == clarity }[0]
-    return "#{@grade.send(grade_color)} / #{@clarity.send(clarity_color)}"
+    return "#{color_it(@grade, grade_color)} / #{color_it(@clarity, clarity_color)}"
   end
 
   def self.capture
